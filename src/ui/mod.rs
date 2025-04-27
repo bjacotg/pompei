@@ -1,4 +1,5 @@
 mod board_widget;
+pub mod menu_widget;
 
 use board_widget::BoardWidget;
 use ratatui::widgets::{Block, Borders};

@@ -2,15 +2,18 @@
 
 use crossterm::event::{self, Event, KeyCode, KeyEvent};
 use game::prelude::Position;
+use ratatui::{DefaultTerminal, widgets::ListState};
 
 mod game;
 
 mod ui;
 
 fn main() {
+    let mut terminal = ratatui::init();
+
+    let (_player1, _player2) = player_selection_menu(&mut terminal);
     let mut game = game::Game::new();
     let mut selected_tile = Position::new(0, 0);
-    let mut terminal = ratatui::init();
     let winner = loop {
         terminal
             .draw(|frame| ui::draw(frame, &game, selected_tile))
@@ -70,4 +73,68 @@ fn select(game: &mut game::Game, position: Position) {
         return;
     }
     game.register_selection(position);
+}
+
+fn player_selection_menu(terminal: &mut DefaultTerminal) -> (usize, usize) {
+    let mut list_state = ListState::default().with_selected(Some(0));
+    let player1_selection = loop {
+        terminal
+            .draw(|frame| {
+                let area = frame.area();
+                frame.render_stateful_widget(
+                    ui::menu_widget::MenuWidget { player1: None },
+                    area,
+                    &mut list_state,
+                );
+            })
+            .expect("failed to draw frame");
+        let Some(message) = handle_event() else {
+            continue;
+        };
+
+        match message {
+            Message::Up => {
+                list_state.select_previous();
+            }
+            Message::Down => {
+                list_state.select_next();
+            }
+            Message::Select => {
+                break list_state.selected().unwrap();
+            }
+            _ => {}
+        }
+    };
+
+    let mut list_state = ListState::default().with_selected(Some(0));
+    loop {
+        terminal
+            .draw(|frame| {
+                let area = frame.area();
+                frame.render_stateful_widget(
+                    ui::menu_widget::MenuWidget {
+                        player1: Some(player1_selection),
+                    },
+                    area,
+                    &mut list_state,
+                );
+            })
+            .expect("failed to draw frame");
+        let Some(message) = handle_event() else {
+            continue;
+        };
+
+        match message {
+            Message::Up => {
+                list_state.select_previous();
+            }
+            Message::Down => {
+                list_state.select_next();
+            }
+            Message::Select => {
+                return (player1_selection, list_state.selected().unwrap());
+            }
+            _ => {}
+        }
+    }
 }
