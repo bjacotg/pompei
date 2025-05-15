@@ -43,24 +43,42 @@ impl Board {
     }
 
     pub fn action(&self, turn: &turn::Turn) -> error::Result<Self> {
-        if !Position::are_neighbors(turn.start, turn.end) {
+        let (start, end, build) = match turn {
+            Turn::Setup(position, position1) => {
+                if self
+                    .get_tiles()
+                    .any(|(_, &t)| t.player == Some(self.next_player))
+                {
+                    return Err(error::GameError::InvalidMove);
+                } else {
+                    let mut new_board = self.clone();
+                    new_board.get_tile_mut(*position).player = Some(self.next_player);
+                    new_board.get_tile_mut(*position1).player = Some(self.next_player);
+                    new_board.next_player = self.next_player.other_player();
+                    return Ok(new_board);
+                }
+            }
+            Turn::MoveBuild { start, end, build } => (*start, *end, Some(*build)),
+            Turn::FinalMove { start, end } => (*start, *end, None),
+        };
+        if !Position::are_neighbors(start, end) {
             return Err(error::GameError::InvalidMove);
         }
-        if self.get_tile(turn.start).player != Some(self.next_player) {
+        if self.get_tile(start).player != Some(self.next_player) {
             return Err(error::GameError::InvalidMove);
         }
-        let move_tile = self.get_tile(turn.end);
+        let move_tile = self.get_tile(end);
         if move_tile.player.is_some() || move_tile.construction == Construction::Dome {
             return Err(error::GameError::InvalidMove);
         }
-        if move_tile.construction != Construction::ThirdLevel && turn.build.is_none() {
+        if move_tile.construction != Construction::ThirdLevel && build.is_none() {
             return Err(error::GameError::InvalidMove);
         }
         let mut new_board = self.clone();
-        new_board.get_tile_mut(turn.start).player = None;
-        new_board.get_tile_mut(turn.end).player = Some(self.next_player);
-        if let Some(construction_position) = turn.build {
-            if !Position::are_neighbors(turn.end, construction_position) {
+        new_board.get_tile_mut(start).player = None;
+        new_board.get_tile_mut(end).player = Some(self.next_player);
+        if let Some(construction_position) = build {
+            if !Position::are_neighbors(end, construction_position) {
                 return Err(error::GameError::InvalidMove);
             }
             let construction_tile = new_board.get_tile_mut(construction_position);
@@ -84,40 +102,60 @@ impl Board {
 
     pub fn possible_move(&self) -> Vec<turn::Turn> {
         let mut acc = vec![];
-        for (orig_pos, orig_tile) in self.get_tiles() {
-            if orig_tile.player != Some(self.next_player) {
-                continue;
-            }
-            for possible_move in orig_pos.get_neighbors() {
-                let move_tile = self.get_tile(possible_move);
-                if !orig_tile.construction.can_move(move_tile.construction) {
+        if self
+            .get_tiles()
+            .any(|(_, tile)| tile.player == Some(self.next_player))
+        {
+            for (orig_pos, orig_tile) in self.get_tiles() {
+                if orig_tile.player != Some(self.next_player) {
                     continue;
                 }
-                if move_tile.player.is_some() {
-                    continue;
-                }
-                if move_tile.construction == Construction::ThirdLevel {
-                    acc.push(turn::Turn {
-                        start: orig_pos,
-                        end: possible_move,
-                        build: None,
-                    });
-                } else {
-                    for possible_build in possible_move.get_neighbors() {
-                        let build_tile = self.get_tile(possible_build);
-                        if build_tile.construction == Construction::Dome {
-                            continue;
-                        }
-                        if build_tile.player.is_some() && possible_build != orig_pos {
-                            continue;
-                        }
-
-                        acc.push(turn::Turn {
+                for possible_move in orig_pos.get_neighbors() {
+                    let move_tile = self.get_tile(possible_move);
+                    if !orig_tile.construction.can_move(move_tile.construction) {
+                        continue;
+                    }
+                    if move_tile.player.is_some() {
+                        continue;
+                    }
+                    if move_tile.construction == Construction::ThirdLevel {
+                        acc.push(turn::Turn::FinalMove {
                             start: orig_pos,
                             end: possible_move,
-                            build: Some(possible_build),
                         });
+                    } else {
+                        for possible_build in possible_move.get_neighbors() {
+                            let build_tile = self.get_tile(possible_build);
+                            if build_tile.construction == Construction::Dome {
+                                continue;
+                            }
+                            if build_tile.player.is_some() && possible_build != orig_pos {
+                                continue;
+                            }
+
+                            acc.push(turn::Turn::MoveBuild {
+                                start: orig_pos,
+                                end: possible_move,
+                                build: possible_build,
+                            });
+                        }
                     }
+                }
+            }
+        } else {
+            let empty_spot = self
+                .get_tiles()
+                .filter_map(|(pos, tile)| {
+                    if tile.player.is_none() {
+                        Some(pos)
+                    } else {
+                        None
+                    }
+                })
+                .collect::<Vec<_>>();
+            for pos1 in &empty_spot {
+                for pos2 in &empty_spot {
+                    acc.push(turn::Turn::Setup(*pos1, *pos2));
                 }
             }
         }
@@ -176,10 +214,10 @@ mod test {
         board.get_tile_mut(Position::new(1, 2)).player = Some(Player::Player1);
 
         let new_board = board
-            .action(&turn::Turn {
+            .action(&turn::Turn::MoveBuild {
                 start: Position::new(1, 2),
                 end: Position::new(2, 2),
-                build: Some(Position::new(2, 3)),
+                build: Position::new(2, 3),
             })
             .unwrap();
         assert_eq!(new_board.get_tile(Position::new(1, 2)).player, None);

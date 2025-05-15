@@ -34,11 +34,20 @@ impl Game {
         self.selectable = match self.current_turn {
             PartialTurn::Nothing => possible_moves
                 .iter()
-                .map(|&Turn { start, .. }| start)
+                .map(|turn| match turn {
+                    Turn::Setup(_, _) => panic!("Not possible"),
+                    Turn::MoveBuild { start, .. } => *start,
+                    Turn::FinalMove { start, .. } => *start,
+                })
                 .collect(),
             PartialTurn::Selection(s) => possible_moves
                 .iter()
-                .filter_map(|&Turn { start, end, .. }| (start == s).then_some(end))
+                .filter_map(|turn| match turn {
+                    Turn::Setup(_, _) => panic!("Not possible"),
+                    Turn::MoveBuild { start, end, .. } if *start == s => Some(*end),
+                    Turn::FinalMove { start, end } if *start == s => Some(*end),
+                    _ => None,
+                })
                 .collect(),
             PartialTurn::Move(s, e) => {
                 if matches!(
@@ -49,8 +58,11 @@ impl Game {
                 } else {
                     possible_moves
                         .iter()
-                        .filter_map(|&Turn { start, end, build }| {
-                            build.filter(|_| s == start && e == end)
+                        .filter_map(|turn| match turn {
+                            Turn::MoveBuild { start, end, build } if s == *start && e == *end => {
+                                Some(*build)
+                            }
+                            _ => None,
                         })
                         .collect()
                 }
@@ -93,10 +105,10 @@ impl Game {
             PartialTurn::Move(start, end) => {
                 self.board = self
                     .board
-                    .action(&turn::Turn {
+                    .action(&turn::Turn::MoveBuild {
                         start,
                         end,
-                        build: Some(selection),
+                        build: selection,
                     })
                     .unwrap();
                 self.current_turn = PartialTurn::Nothing;
@@ -155,5 +167,19 @@ impl Game {
 
     pub fn board(&self) -> &board::Board {
         &self.board
+    }
+
+    pub fn play(&mut self, turn: Turn) {
+        self.board = self.board.action(&turn).unwrap();
+        self.current_turn = if self
+            .board
+            .get_tiles()
+            .any(|(_, t)| t.player == Some(self.board.next_player))
+        {
+            crate::game::turn::PartialTurn::Nothing
+        } else {
+            crate::game::turn::PartialTurn::NothingSetup
+        };
+        self.reset_selectable();
     }
 }
