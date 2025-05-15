@@ -5,6 +5,7 @@ use game::prelude::Position;
 use ratatui::{DefaultTerminal, widgets::ListState};
 
 mod game;
+mod player;
 
 mod ui;
 

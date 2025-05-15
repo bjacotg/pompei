@@ -1,0 +1,12 @@
+use super::Player;
+use rand::prelude::*;
+
+struct RandomPlayer;
+
+impl Player for RandomPlayer {
+    fn play(&self, board: &crate::game::board::Board) -> crate::game::turn::Turn {
+        let mut possible_moves = board.possible_move();
+
+        possible_moves.choose(&mut rng())
+    }
+}
