@@ -42,7 +42,7 @@ impl<'a> Widget for BoardWidget<'a> {
                 selected: self.0.selected().contains(&position),
                 selectable: self.0.selectable().contains(&position),
             }
-            .render(grid[position.row][position.col], buf);
+            .render(grid[position.row()][position.col()], buf);
         }
     }
 }

@@ -15,11 +15,11 @@ impl Board {
     }
 
     pub fn get_tile(&self, position: Position) -> &Tile {
-        &self.tiles[position.row][position.col]
+        &self.tiles[position.row()][position.col()]
     }
 
     fn get_tile_mut(&mut self, position: Position) -> &mut Tile {
-        &mut self.tiles[position.row][position.col]
+        &mut self.tiles[position.row()][position.col()]
     }
 
     pub fn place_worker(&self, p1: Position, p2: Position) -> error::Result<Self> {
