@@ -30,7 +30,7 @@ impl Position {
         (self.0.ilog2() % 6) as usize
     }
 
-    pub fn get_neighbors(self) -> Vec<Position> {
+    pub fn get_neighbors(self) -> PositionSet {
         [
             self.0 << 1,
             self.0 >> 1,
@@ -72,6 +72,87 @@ impl Position {
     pub fn right(&mut self) {
         let new = self.0 << 1;
         self.0 = if bad_position(new) { self.0 >> 4 } else { new };
+    }
+}
+
+#[derive(Clone, Copy, Debug, PartialEq, Eq)]
+pub struct PositionSet(u32);
+
+pub const ALL_POSITIONS: PositionSet = PositionSet(u32::MAX ^ SENTINEL);
+
+impl PositionSet {
+    pub fn intersection(self, other: Self) -> Self {
+        Self(self.0 & other.0)
+    }
+
+    pub fn union(self, other: Self) -> Self {
+        Self(self.0 | other.0)
+    }
+
+    pub fn len(self) -> u32 {
+        self.0.count_ones()
+    }
+
+    pub fn contains(self, position: Position) -> bool {
+        self.0 & position.0 != 0
+    }
+
+    pub fn new() -> Self {
+        Self(0)
+    }
+
+    pub fn is_empty(self) -> bool {
+        self.0 == 0
+    }
+}
+
+impl<const N: usize> From<[Position; N]> for PositionSet {
+    fn from(value: [Position; N]) -> Self {
+        value.into_iter().collect()
+    }
+}
+
+impl IntoIterator for PositionSet {
+    type Item = Position;
+
+    type IntoIter = PositionIterator;
+
+    fn into_iter(self) -> Self::IntoIter {
+        PositionIterator(self.0, self.0)
+    }
+}
+
+impl FromIterator<Position> for PositionSet {
+    fn from_iter<T: IntoIterator<Item = Position>>(iter: T) -> Self {
+        PositionSet(iter.into_iter().fold(0u32, |acc, element| acc | element.0))
+    }
+}
+
+#[derive(Clone, Copy, Debug)]
+pub struct PositionIterator(u32, u32);
+
+impl Iterator for PositionIterator {
+    type Item = Position;
+
+    fn next(&mut self) -> Option<Self::Item> {
+        if self.1 == 0 {
+            return None;
+        }
+        let item = self.1.isolate_most_significant_one();
+        self.1 = self.1 ^ item;
+        Some(Position(item))
+    }
+}
+
+impl DoubleEndedIterator for PositionIterator {
+    fn next_back(&mut self) -> Option<Self::Item> {
+        if self.0 == self.1 {
+            return None;
+        }
+
+        let item = (self.0 ^ self.1).isolate_least_significant_one();
+        self.1 = self.1 | item;
+        Some(Position(item))
     }
 }
 
@@ -150,34 +231,34 @@ mod tests {
         assert_that!(
             Position::new(0, 0).get_neighbors(),
             {
-                &Position::new(0, 1),
-                &Position::new(1, 0),
-                &Position::new(1, 1)
+                Position::new(0, 1),
+                Position::new(1, 0),
+                Position::new(1, 1)
             }
         );
 
         assert_that!(
             Position::new(0, 1).get_neighbors(),
             {
-                &Position::new(0, 0),
-                &Position::new(1, 0),
-                &Position::new(1, 1),
-                &Position::new(0, 2),
-                &Position::new(1, 2)
+                Position::new(0, 0),
+                Position::new(1, 0),
+                Position::new(1, 1),
+                Position::new(0, 2),
+                Position::new(1, 2)
             }
         );
 
         assert_that!(
             Position::new(1, 1).get_neighbors(),
             {
-                &Position::new(0, 0),
-                &Position::new(1, 0),
-                &Position::new(2, 0),
-                &Position::new(0, 1),
-                &Position::new(2, 1),
-                &Position::new(0, 2),
-                &Position::new(1, 2),
-                &Position::new(2, 2)
+                Position::new(0, 0),
+                Position::new(1, 0),
+                Position::new(2, 0),
+                Position::new(0, 1),
+                Position::new(2, 1),
+                Position::new(0, 2),
+                Position::new(1, 2),
+                Position::new(2, 2)
             }
         );
     }
@@ -215,7 +296,7 @@ mod tests {
                         let pos2 = Position::new(r2, c2);
                         let is_neigh = Position::are_neighbors(pos1, pos2);
                         assert_eq!(is_neigh, Position::are_neighbors(pos2, pos1));
-                        assert_eq!(is_neigh, n.contains(&pos2));
+                        assert_eq!(is_neigh, n.contains(pos2));
                     }
                 }
             }

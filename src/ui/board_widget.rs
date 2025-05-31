@@ -39,8 +39,8 @@ impl<'a> Widget for BoardWidget<'a> {
             TileWidget {
                 tile,
                 cursor: position == self.1,
-                selected: self.0.selected().contains(&position),
-                selectable: self.0.selectable().contains(&position),
+                selected: self.0.selected().contains(position),
+                selectable: self.0.selectable().contains(position),
             }
             .render(grid[position.row()][position.col()], buf);
         }

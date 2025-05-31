@@ -1,4 +1,5 @@
 #![allow(dead_code)]
+#![feature(isolate_most_least_significant_one)]
 
 use control::{Message, handle_event};
 use game::prelude::Position;
@@ -52,7 +53,7 @@ fn main() {
 }
 
 fn select(game: &mut game::Game, position: Position) {
-    if !game.selectable().contains(&position) {
+    if !game.selectable().contains(position) {
         return;
     }
     game.register_selection(position);

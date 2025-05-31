@@ -14,19 +14,15 @@ use self::turn::PartialTurn;
 pub struct Game {
     board: board::Board,
     current_turn: PartialTurn,
-    selectable: HashSet<Position>,
+    selectable: PositionSet,
 }
 
 impl Game {
     pub fn new() -> Self {
-        let selectable = board::Board::new()
-            .get_tiles()
-            .map(|(position, _)| position)
-            .collect();
         Self {
             board: board::Board::new(),
             current_turn: PartialTurn::NothingSetup,
-            selectable,
+            selectable: ALL_POSITIONS,
         }
     }
     fn reset_selectable(&mut self) {
@@ -54,7 +50,7 @@ impl Game {
                     self.board.get_tile(e).construction,
                     Construction::ThirdLevel
                 ) {
-                    HashSet::new()
+                    PositionSet::new()
                 } else {
                     possible_moves
                         .iter()
@@ -82,8 +78,8 @@ impl Game {
         };
     }
 
-    pub fn selectable(&self) -> &HashSet<Position> {
-        &self.selectable
+    pub fn selectable(&self) -> PositionSet {
+        self.selectable
     }
 
     pub fn cancel(&mut self) {
@@ -127,13 +123,13 @@ impl Game {
         self.reset_selectable();
     }
 
-    pub fn selected(&self) -> Vec<Position> {
+    pub fn selected(&self) -> PositionSet {
         match self.current_turn {
-            PartialTurn::Nothing => vec![],
-            PartialTurn::Selection(start) => vec![start],
-            PartialTurn::Move(start, end) => vec![start, end],
-            PartialTurn::NothingSetup => vec![],
-            PartialTurn::PartialSetup(first) => vec![first],
+            PartialTurn::Nothing => [].into(),
+            PartialTurn::Selection(start) => [start].into(),
+            PartialTurn::Move(start, end) => [start, end].into(),
+            PartialTurn::NothingSetup => [].into(),
+            PartialTurn::PartialSetup(first) => [first].into(),
         }
     }
 
