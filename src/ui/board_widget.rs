@@ -47,14 +47,14 @@ impl<'a> Widget for BoardWidget<'a> {
     }
 }
 
-struct TileWidget<'a> {
-    tile: &'a Tile,
+struct TileWidget {
+    tile: Tile,
     cursor: bool,
     selected: bool,
     selectable: bool,
 }
 
-impl<'a> Widget for TileWidget<'a> {
+impl Widget for TileWidget {
     fn render(self, area: ratatui::prelude::Rect, buf: &mut ratatui::prelude::Buffer)
     where
         Self: Sized,

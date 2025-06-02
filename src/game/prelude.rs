@@ -89,6 +89,10 @@ impl PositionSet {
         Self(self.0 | other.0)
     }
 
+    pub fn difference(self, other: Self) -> Self {
+        Self((self.0 | other.0) ^ other.0)
+    }
+
     pub fn len(self) -> u32 {
         self.0.count_ones()
     }
@@ -103,6 +107,14 @@ impl PositionSet {
 
     pub fn is_empty(self) -> bool {
         self.0 == 0
+    }
+
+    pub fn add(&mut self, position: Position) {
+        self.0 |= position.0;
+    }
+
+    pub fn remove(&mut self, position: Position) {
+        self.0 = (self.0 | position.0) ^ position.0;
     }
 }
 
@@ -139,7 +151,7 @@ impl Iterator for PositionIterator {
             return None;
         }
         let item = self.1.isolate_most_significant_one();
-        self.1 = self.1 ^ item;
+        self.1 ^= item;
         Some(Position(item))
     }
 }
@@ -151,7 +163,7 @@ impl DoubleEndedIterator for PositionIterator {
         }
 
         let item = (self.0 ^ self.1).isolate_least_significant_one();
-        self.1 = self.1 | item;
+        self.1 |= item;
         Some(Position(item))
     }
 }

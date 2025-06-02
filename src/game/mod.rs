@@ -3,8 +3,6 @@ pub mod error;
 pub mod prelude;
 pub mod turn;
 
-use std::collections::HashSet;
-
 use prelude::*;
 use turn::Turn;
 
