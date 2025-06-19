@@ -139,10 +139,10 @@ impl Game {
                     Construction::ThirdLevel
                 ) =>
             {
-                Some(self.board.next_player)
+                Some(self.board.current_player())
             }
             PartialTurn::Nothing if self.selectable().is_empty() => {
-                Some(self.board.next_player.other_player())
+                Some(self.board.current_player().other_player())
             }
             _ => None,
         }
@@ -156,7 +156,7 @@ impl Game {
             crate::game::turn::PartialTurn::NothingSetup => "Place your first worker!",
             crate::game::turn::PartialTurn::PartialSetup(_) => "Place your second worker!",
         };
-        format!("{}: {action}", self.board.next_player)
+        format!("{}: {action}", self.board.current_player())
     }
 
     pub fn board(&self) -> &board::Board {
@@ -168,7 +168,7 @@ impl Game {
         self.current_turn = if self
             .board
             .get_tiles()
-            .any(|(_, t)| t.player == Some(self.board.next_player))
+            .any(|(_, t)| t.player == Some(self.board.current_player()))
         {
             crate::game::turn::PartialTurn::Nothing
         } else {

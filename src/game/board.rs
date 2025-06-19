@@ -2,12 +2,12 @@ use super::*;
 
 #[derive(Clone, Debug)]
 pub struct Board {
-    player1_meeple: PositionSet,
-    player2_meeple: PositionSet,
-    first_floor: PositionSet,
-    second_floor: PositionSet,
-    third_floor: PositionSet,
-    dome: PositionSet,
+    pub player1_meeple: PositionSet,
+    pub player2_meeple: PositionSet,
+    pub first_floor: PositionSet,
+    pub second_floor: PositionSet,
+    pub third_floor: PositionSet,
+    pub dome: PositionSet,
     pub next_player: Player,
 }
 
@@ -60,7 +60,7 @@ impl Board {
         }
     }
 
-    fn get_player_meeple(&self, player: Player) -> PositionSet {
+    pub fn get_player_meeple(&self, player: Player) -> PositionSet {
         match player {
             Player::Player1 => self.player1_meeple,
             Player::Player2 => self.player2_meeple,
